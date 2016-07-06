@@ -128,7 +128,7 @@ public class SwiftyMarkdown {
 	
 	- returns: An NSAttributedString with the styles applied
 	*/
-	public func attributedString() -> NSAttributedString {
+	public func attributedString(appendingNewLines: Bool = true) -> NSAttributedString {
 		let attributedString = NSMutableAttributedString(string: "")
 		
 		let lines = self.string.componentsSeparatedByCharactersInSet(NSCharacterSet.newlineCharacterSet())
@@ -226,7 +226,9 @@ public class SwiftyMarkdown {
 			}
 			
 			// Append a new line character to the end of the processed line
-			//attributedString.appendAttributedString(NSAttributedString(string: "\n"))
+			if appendingNewLines {
+                		attributedString.appendAttributedString(NSAttributedString(string: "\n"))
+             		}
 			currentType = .Body
 		}
 		
