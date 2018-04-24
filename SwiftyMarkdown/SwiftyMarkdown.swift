@@ -9,9 +9,10 @@
 import UIKit
 
 
-public protocol FontProperties {
+@objc public protocol FontProperties {
 	var fontName : String? { get set }
 	var color : UIColor { get set }
+	var fontSize : CGFloat { get set }
 }
 
 
@@ -20,79 +21,81 @@ A struct defining the styles that can be applied to the parsed Markdown. The `fo
 
 If that is not set, then the system default will be used.
 */
-public struct BasicStyles : FontProperties {
-	public var fontName : String? = UIFont.preferredFontForTextStyle(UIFontTextStyleBody).fontName
-	public var color = UIColor.blackColor()
+@objc open class BasicStyles : NSObject, FontProperties {
+	public var fontName : String? = UIFont.preferredFont(forTextStyle: UIFontTextStyle.body).fontName
+	public var color = UIColor.black
+	public var fontSize : CGFloat = 0.0
 }
 
 enum LineType : Int {
-	case H1, H2, H3, H4, H5, H6, Body
+	case h1, h2, h3, h4, h5, h6, body
 }
 
+
 enum LineStyle : Int {
-	case None
-	case Italic
-	case Bold
-	case Code
-	case Link
+	case none
+	case italic
+	case bold
+	case code
+	case link
 	
-	static func styleFromString(string : String ) -> LineStyle {
+	static func styleFromString(_ string : String ) -> LineStyle {
 		if string == "**" || string == "__" {
-			return .Bold
+			return .bold
 		} else if string == "*" || string == "_" {
-			return .Italic
+			return .italic
 		} else if string == "`" {
-			return .Code
+			return .code
 		} else if string == "["  {
-			return .Link
+			return .link
 		} else {
-			return .None
+			return .none
 		}
 	}
 }
 
 /// A class that takes a [Markdown](https://daringfireball.net/projects/markdown/) string or file and returns an NSAttributedString with the applied styles. Supports Dynamic Type.
-public class SwiftyMarkdown {
+@objc open class SwiftyMarkdown: NSObject {
 	
 	/// The styles to apply to any H1 headers found in the Markdown
-	public var h1 = BasicStyles()
-
+	open var h1 = BasicStyles()
+	
 	/// The styles to apply to any H2 headers found in the Markdown
-	public var h2 = BasicStyles()
+	open var h2 = BasicStyles()
 	
 	/// The styles to apply to any H3 headers found in the Markdown
-	public var h3 = BasicStyles()
+	open var h3 = BasicStyles()
 	
 	/// The styles to apply to any H4 headers found in the Markdown
-	public var h4 = BasicStyles()
+	open var h4 = BasicStyles()
 	
 	/// The styles to apply to any H5 headers found in the Markdown
-	public var h5 = BasicStyles()
+	open var h5 = BasicStyles()
 	
 	/// The styles to apply to any H6 headers found in the Markdown
-	public var h6 = BasicStyles()
+	open var h6 = BasicStyles()
 	
 	/// The default body styles. These are the base styles and will be used for e.g. headers if no other styles override them.
-	public var body = BasicStyles()
+	open var body = BasicStyles()
 	
 	/// The styles to apply to any links found in the Markdown
-	public var link = BasicStyles()
-
+	open var link = BasicStyles()
+	
 	/// The styles to apply to any bold text found in the Markdown
-	public var bold = BasicStyles()
+	open var bold = BasicStyles()
 	
 	/// The styles to apply to any italic text found in the Markdown
-	public var italic = BasicStyles()
+	open var italic = BasicStyles()
 	
 	/// The styles to apply to any code blocks or inline code text found in the Markdown
-	public var code = BasicStyles()
-
+	open var code = BasicStyles()
 	
-	var currentType : LineType = .Body
-
+	
+	var currentType : LineType = .body
+	
 	
 	let string : String
-	let instructionSet = NSCharacterSet(charactersInString: "[\\*_`")
+	let instructionSet = CharacterSet(charactersIn: "[\\*_`")
 	
 	/**
 	
@@ -111,16 +114,59 @@ public class SwiftyMarkdown {
 	
 	- returns: An initialized SwiftyMarkdown object, or nil if the string couldn't be read
 	*/
-	public init?(url : NSURL ) {
+	public init?(url : URL ) {
 		
 		do {
-			self.string = try NSString(contentsOfURL: url, encoding: NSUTF8StringEncoding) as String
+			self.string = try NSString(contentsOf: url, encoding: String.Encoding.utf8.rawValue) as String
 			
 		} catch {
 			self.string = ""
-			fatalError("Couldn't read string")
 			return nil
 		}
+	}
+	
+	/**
+	Set font size for all styles
+	
+	- parameter size: size of font
+	*/
+	open func setFontSizeForAllStyles(with size: CGFloat) {
+		h1.fontSize = size
+		h2.fontSize = size
+		h3.fontSize = size
+		h4.fontSize = size
+		h5.fontSize = size
+		h6.fontSize = size
+		body.fontSize = size
+		italic.fontSize = size
+		code.fontSize = size
+		link.fontSize = size
+	}
+	
+	open func setFontColorForAllStyles(with color: UIColor) {
+		h1.color = color
+		h2.color = color
+		h3.color = color
+		h4.color = color
+		h5.color = color
+		h6.color = color
+		body.color = color
+		italic.color = color
+		code.color = color
+		link.color = color
+	}
+	
+	open func setFontNameForAllStyles(with name: String) {
+		h1.fontName = name
+		h2.fontName = name
+		h3.fontName = name
+		h4.fontName = name
+		h5.fontName = name
+		h6.fontName = name
+		body.fontName = name
+		italic.fontName = name
+		code.fontName = name
+		link.fontName = name
 	}
 	
 	/**
@@ -128,10 +174,10 @@ public class SwiftyMarkdown {
 	
 	- returns: An NSAttributedString with the styles applied
 	*/
-	public func attributedString(appendingNewLines: Bool = true) -> NSAttributedString {
+	open func attributedString(appendingNewLines: Bool = true) -> NSAttributedString {
 		let attributedString = NSMutableAttributedString(string: "")
 		
-		let lines = self.string.componentsSeparatedByCharactersInSet(NSCharacterSet.newlineCharacterSet())
+		let lines = self.string.components(separatedBy: CharacterSet.newlines)
 		
 		var lineCount = 0
 		
@@ -144,19 +190,19 @@ public class SwiftyMarkdown {
 				skipLine = false
 				continue
 			}
-			var line = theLine
+			var line = theLine == "" ? " " : theLine
 			for heading in headings {
 				
-				if let range =  line.rangeOfString(heading) where range.startIndex == line.startIndex {
+				if let range =  line.range(of: heading) , range.lowerBound == line.startIndex {
 					
-					let startHeadingString = line.stringByReplacingCharactersInRange(range, withString: "")
-
+					let startHeadingString = line.replacingCharacters(in: range, with: "")
+					
 					// Remove ending
-					let endHeadingString = heading.stringByTrimmingCharactersInSet(NSCharacterSet.whitespaceAndNewlineCharacterSet())
-					line = startHeadingString.stringByReplacingOccurrencesOfString(endHeadingString, withString: "").stringByTrimmingCharactersInSet(NSCharacterSet.whitespaceAndNewlineCharacterSet())
+					let endHeadingString = heading.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+					line = startHeadingString.replacingOccurrences(of: endHeadingString, with: "").trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
 					
-					currentType = LineType(rawValue: headings.indexOf(heading)!)!
-
+					currentType = LineType(rawValue: headings.index(of: heading)!)!
+					
 					// We found a heading so break out of the inner loop
 					break
 				}
@@ -166,210 +212,233 @@ public class SwiftyMarkdown {
 			if lineCount  < lines.count {
 				let nextLine = lines[lineCount]
 				
-				if let range = nextLine.rangeOfString("=") where range.startIndex == nextLine.startIndex {
+				let hasNonWhiteSpaceCharacters = (line.rangeOfCharacter(from: CharacterSet.whitespacesAndNewlines.inverted) != nil)
+                
+				if hasNonWhiteSpaceCharacters, let range = nextLine.range(of: "=") , range.lowerBound == nextLine.startIndex {
 					// Make H1
-					currentType = .H1
+					currentType = .h1
 					// We need to skip the next line
 					skipLine = true
 				}
 				
-				if let range = nextLine.rangeOfString("-") where range.startIndex == nextLine.startIndex {
-					// Make H2
-					currentType = .H2
-					// We need to skip the next line
-					skipLine = true
+				if hasNonWhiteSpaceCharacters, let nextRange = nextLine.range(of: "-") , nextRange.lowerBound == nextLine.startIndex {
+					if let range = line.range(of: "-"), range.lowerBound == line.startIndex {
+						// This is a bullet list, not an `Alt-H2`, don't skip
+					} else {
+						// Make H2
+						currentType = .h2
+						// We need to skip the next line
+						skipLine = true
+					}
 				}
 			}
 			
 			// If this is not an empty line...
-			if line.characters.count > 0 {
+			if line.count > 0 {
 				
 				// ...start scanning
-				let scanner = NSScanner(string: line)
+				let scanner = Scanner(string: line)
 				
 				// We want to be aware of spaces
 				scanner.charactersToBeSkipped = nil
 				
-				while !scanner.atEnd {
+				while !scanner.isAtEnd {
 					var string : NSString?
-
+					
 					// Get all the characters up to the ones we are interested in
-					if scanner.scanUpToCharactersFromSet(instructionSet, intoString: &string) {
+					if scanner.scanUpToCharacters(from: instructionSet, into: &string) {
 						
-						if let hasString = string as? String {
-							let bodyString = attributedStringFromString(hasString, withStyle: .None)
-							attributedString.appendAttributedString(bodyString)
+						if let hasString = string as String? {
+							let bodyString = attributedStringFromString(hasString, withStyle: .none)
+							attributedString.append(bodyString)
 							
 							let location = scanner.scanLocation
 							
 							let matchedCharacters = tagFromScanner(scanner).foundCharacters
 							// If the next string after the characters is a space, then add it to the final string and continue
 							
-							let set = NSMutableCharacterSet.whitespaceCharacterSet()
-							set.formUnionWithCharacterSet(NSCharacterSet.punctuationCharacterSet())
-							if scanner.scanUpToCharactersFromSet(set, intoString: nil) {
+							let set = NSMutableCharacterSet.whitespace()
+							set.formUnion(with: CharacterSet.punctuationCharacters)
+							if scanner.scanUpToCharacters(from: set as CharacterSet, into: nil) {
 								scanner.scanLocation = location
-								attributedString.appendAttributedString(self.attributedStringFromScanner(scanner))
-
+								attributedString.append(self.attributedStringFromScanner(scanner))
+								
 							} else if matchedCharacters == "[" {
 								scanner.scanLocation = location
-								attributedString.appendAttributedString(self.attributedStringFromScanner(scanner))								
+								attributedString.append(self.attributedStringFromScanner(scanner))
 							} else {
-								let charAtts = attributedStringFromString(matchedCharacters, withStyle: .None)
-								attributedString.appendAttributedString(charAtts)
+								
+								let charAtts = attributedStringFromString(matchedCharacters, withStyle: .none)
+								attributedString.append(charAtts)
+								
 							}
 						}
 					} else {
-						attributedString.appendAttributedString(self.attributedStringFromScanner(scanner, atStartOfLine: true))
+						attributedString.append(self.attributedStringFromScanner(scanner, atStartOfLine: true))
 					}
 				}
 			}
 			
 			// Append a new line character to the end of the processed line
 			if appendingNewLines {
-                		attributedString.appendAttributedString(NSAttributedString(string: "\n"))
-             		}
+                attributedString.append(NSAttributedString(string: "\n"))
+            }
 			currentType = .Body
 		}
 		
 		return attributedString
 	}
 	
-	func attributedStringFromScanner( scanner : NSScanner, atStartOfLine start : Bool = false) -> NSAttributedString {
+	func attributedStringFromScanner( _ scanner : Scanner, atStartOfLine start : Bool = false) -> NSAttributedString {
 		var followingString : NSString?
-
+		
 		let results = self.tagFromScanner(scanner)
-
+		
 		var style = LineStyle.styleFromString(results.foundCharacters)
 		
-		var attributes = [String : AnyObject]()
-		if style == .Link {
+		var attributes = [NSAttributedStringKey : AnyObject]()
+		if style == .link {
 			
 			var linkText : NSString?
 			var linkURL : NSString?
-			let linkCharacters = NSCharacterSet(charactersInString: "]()")
+			let linkCharacters = CharacterSet(charactersIn: "]()")
 			
-			scanner.scanUpToCharactersFromSet(linkCharacters, intoString: &linkText)
-			scanner.scanCharactersFromSet(linkCharacters, intoString: nil)
-			scanner.scanUpToCharactersFromSet(linkCharacters, intoString: &linkURL)
-			scanner.scanCharactersFromSet(linkCharacters, intoString: nil)
+			scanner.scanUpToCharacters(from: linkCharacters, into: &linkText)
+			scanner.scanCharacters(from: linkCharacters, into: nil)
+			scanner.scanUpToCharacters(from: linkCharacters, into: &linkURL)
+			scanner.scanCharacters(from: linkCharacters, into: nil)
 			
 			
-			if let hasLink = linkText, hasURL = linkURL {
-				followingString = hasLink as String
-				attributes[NSLinkAttributeName] = hasURL as String
+			if let hasLink = linkText, let hasURL = linkURL {
+				followingString = hasLink
+				attributes[NSAttributedStringKey.link] = hasURL
 			} else {
-				style = .None
+				style = .none
 			}
 		} else {
-			scanner.scanUpToCharactersFromSet(instructionSet, intoString: &followingString)		
+			scanner.scanUpToCharacters(from: instructionSet, into: &followingString)
 		}
 		
 		let attributedString = attributedStringFromString(results.escapedCharacters, withStyle: style).mutableCopy() as! NSMutableAttributedString
-		if let hasString = followingString as? String {
-
-			let prefix = ( style == .Code && start ) ? "\t" : ""
+		if let hasString = followingString as String? {
+			
+			let prefix = ( style == .code && start ) ? "\t" : ""
 			let attString = attributedStringFromString(prefix + hasString, withStyle: style, attributes: attributes)
-			attributedString.appendAttributedString(attString)
+			attributedString.append(attString)
 		}
 		let suffix = self.tagFromScanner(scanner)
-		attributedString.appendAttributedString(attributedStringFromString(suffix.escapedCharacters, withStyle: style))
+		attributedString.append(attributedStringFromString(suffix.escapedCharacters, withStyle: style))
 		
 		return attributedString
 	}
 	
-	func tagFromScanner( scanner : NSScanner ) -> (foundCharacters : String, escapedCharacters : String) {
+	func tagFromScanner( _ scanner : Scanner ) -> (foundCharacters : String, escapedCharacters : String) {
 		var matchedCharacters : String = ""
 		var tempCharacters : NSString?
 		
 		// Scan the ones we are interested in
-		while scanner.scanCharactersFromSet(instructionSet, intoString: &tempCharacters) {
-			if let chars = tempCharacters as? String {
+		while scanner.scanCharacters(from: instructionSet, into: &tempCharacters) {
+			if let chars = tempCharacters as String? {
 				matchedCharacters = matchedCharacters + chars
 			}
 		}
 		var foundCharacters : String = ""
 		
-		while matchedCharacters.containsString("\\") {
-			if let hasRange = matchedCharacters.rangeOfString("\\") {
+		while matchedCharacters.contains("\\") {
+			if let hasRange = matchedCharacters.range(of: "\\") {
 				
-				let newRange  = hasRange.startIndex...hasRange.endIndex
-				foundCharacters = foundCharacters + matchedCharacters.substringWithRange(newRange)
-
-				matchedCharacters.removeRange(newRange)
+				if matchedCharacters.count > 1 {
+					let newRange = hasRange.lowerBound..<matchedCharacters.index(hasRange.upperBound, offsetBy: 1)
+					foundCharacters = foundCharacters + matchedCharacters[newRange].replacingOccurrences(of: "\\", with: "")
+					
+					matchedCharacters.removeSubrange(newRange)
+				} else {
+					foundCharacters = matchedCharacters
+					break
+				}
 			}
 			
 		}
 		
 		
-		return (matchedCharacters, foundCharacters.stringByReplacingOccurrencesOfString("\\", withString: ""))
+		return (matchedCharacters, foundCharacters)
 	}
 	
 	
 	// Make H1
 	
-	func attributedStringFromString(string : String, withStyle style : LineStyle, attributes : [String : AnyObject] = [:] ) -> NSAttributedString {
-		let textStyle : String
+	func attributedStringFromString(_ string : String, withStyle style : LineStyle, attributes : [NSAttributedStringKey : AnyObject] = [:] ) -> NSAttributedString {
+		let textStyle : UIFontTextStyle
 		var fontName : String?
-        var attributes = attributes
-
+		var attributes = attributes
+		var fontSize : CGFloat?
+		
 		// What type are we and is there a font name set?
 		
 		
 		switch currentType {
-		case .H1:
+		case .h1:
 			fontName = h1.fontName
+			fontSize = h1.fontSize
 			if #available(iOS 9, *) {
-				textStyle = UIFontTextStyleTitle1
+				textStyle = UIFontTextStyle.title1
 			} else {
-				textStyle = UIFontTextStyleHeadline
+				textStyle = UIFontTextStyle.headline
 			}
-			attributes[NSForegroundColorAttributeName] = h1.color
-		case .H2:
+			attributes[NSAttributedStringKey.foregroundColor] = h1.color
+		case .h2:
 			fontName = h2.fontName
+			fontSize = h2.fontSize
 			if #available(iOS 9, *) {
-				textStyle = UIFontTextStyleTitle2
+				textStyle = UIFontTextStyle.title2
 			} else {
-				textStyle = UIFontTextStyleHeadline
+				textStyle = UIFontTextStyle.headline
 			}
-			attributes[NSForegroundColorAttributeName] = h2.color
-		case .H3:
+			attributes[NSAttributedStringKey.foregroundColor] = h2.color
+		case .h3:
 			fontName = h3.fontName
+			fontSize = h3.fontSize
 			if #available(iOS 9, *) {
-				textStyle = UIFontTextStyleTitle2
+				textStyle = UIFontTextStyle.title2
 			} else {
-				textStyle = UIFontTextStyleSubheadline
+				textStyle = UIFontTextStyle.subheadline
 			}
-			attributes[NSForegroundColorAttributeName] = h3.color
-		case .H4:
+			attributes[NSAttributedStringKey.foregroundColor] = h3.color
+		case .h4:
 			fontName = h4.fontName
-			textStyle = UIFontTextStyleHeadline
-			attributes[NSForegroundColorAttributeName] = h4.color
-		case .H5:
+			fontSize = h4.fontSize
+			textStyle = UIFontTextStyle.headline
+			attributes[NSAttributedStringKey.foregroundColor] = h4.color
+		case .h5:
 			fontName = h5.fontName
-			textStyle = UIFontTextStyleSubheadline
-			attributes[NSForegroundColorAttributeName] = h5.color
-		case .H6:
+			fontSize = h5.fontSize
+			textStyle = UIFontTextStyle.subheadline
+			attributes[NSAttributedStringKey.foregroundColor] = h5.color
+		case .h6:
 			fontName = h6.fontName
-			textStyle = UIFontTextStyleFootnote
-			attributes[NSForegroundColorAttributeName] = h6.color
+			fontSize = h6.fontSize
+			textStyle = UIFontTextStyle.footnote
+			attributes[NSAttributedStringKey.foregroundColor] = h6.color
 		default:
 			fontName = body.fontName
-			textStyle = UIFontTextStyleBody
-			attributes[NSForegroundColorAttributeName] = body.color
+			fontSize = body.fontSize
+			textStyle = UIFontTextStyle.body
+			attributes[NSAttributedStringKey.foregroundColor] = body.color
 			break
 		}
 		
 		// Check for code
 		
-		if style == .Code {
+		if style == .code {
 			fontName = code.fontName
-			attributes[NSForegroundColorAttributeName] = code.color
+			fontSize = code.fontSize
+			attributes[NSAttributedStringKey.foregroundColor] = code.color
 		}
 		
-		if style == .Link {
+		if style == .link {
 			fontName = link.fontName
-			attributes[NSForegroundColorAttributeName] = link.color
+			fontSize = link.fontSize
+			attributes[NSAttributedStringKey.foregroundColor] = link.color
 		}
 		
 		// Fallback to body
@@ -379,29 +448,34 @@ public class SwiftyMarkdown {
 			fontName = body.fontName
 		}
 		
-		let font = UIFont.preferredFontForTextStyle(textStyle)
-		let styleDescriptor = font.fontDescriptor()
-		let styleSize = styleDescriptor.fontAttributes()[UIFontDescriptorSizeAttribute] as? CGFloat ?? CGFloat(14)
+		fontSize = fontSize == 0.0 ? nil : fontSize
+		let font = UIFont.preferredFont(forTextStyle: textStyle)
+		let styleDescriptor = font.fontDescriptor
+		let styleSize = fontSize ?? styleDescriptor.fontAttributes[UIFontDescriptor.AttributeName.size] as? CGFloat ?? CGFloat(14)
 		
 		var finalFont : UIFont
-		if let finalFontName = fontName, font = UIFont(name: finalFontName, size: styleSize) {
+		if let finalFontName = fontName, let font = UIFont(name: finalFontName, size: styleSize) {
 			finalFont = font
 		} else {
-			finalFont = UIFont.preferredFontForTextStyle(textStyle)
+			finalFont = UIFont.preferredFont(forTextStyle:  textStyle)
 		}
 		
-		let finalFontDescriptor = finalFont.fontDescriptor()
-		if style == .Italic {
-			let italicDescriptor = finalFontDescriptor.fontDescriptorWithSymbolicTraits(.TraitItalic)
-			finalFont = UIFont(descriptor: italicDescriptor, size: styleSize)
+		let finalFontDescriptor = finalFont.fontDescriptor
+		if style == .italic {
+			if let italicDescriptor = finalFontDescriptor.withSymbolicTraits(.traitItalic) {
+				finalFont = UIFont(descriptor: italicDescriptor, size: styleSize)
+			}
+			
 		}
-		if style == .Bold {
-			let boldDescriptor = finalFontDescriptor.fontDescriptorWithSymbolicTraits(.TraitBold)
-			finalFont = UIFont(descriptor: boldDescriptor, size: styleSize)
+		if style == .bold {
+			if let boldDescriptor = finalFontDescriptor.withSymbolicTraits(.traitBold) {
+				finalFont = UIFont(descriptor: boldDescriptor, size: styleSize)
+			}
+			
 		}
 		
 		
-		attributes[NSFontAttributeName] = finalFont
+		attributes[NSAttributedStringKey.font] = finalFont
 		
 		return NSAttributedString(string: string, attributes: attributes)
 	}

@@ -1,14 +1,23 @@
 //: Playground - noun: a place where people can play
 
 import UIKit
-import XCPlayground
+import PlaygroundSupport
 
 let containerView = UIView(frame: CGRect(x: 0.0, y: 0.0, width: 400.0, height: 600))
 
-XCPlaygroundPage.currentPage.liveView = containerView
+PlaygroundPage.current.liveView = containerView
 let label = UITextView(frame: containerView.frame)
 containerView.addSubview(label)
 
+var foundCharacters : String = ""
+var matchedCharacters : String = "\\Some string ''\\"
+if let hasRange = matchedCharacters.range(of: "\\") {
+	
+	let newRange  = hasRange.lowerBound..<hasRange.upperBound
+	foundCharacters = foundCharacters + matchedCharacters[newRange]
+	
+	matchedCharacters.removeSubrange(newRange)
+}
 //
 //public protocol FontProperties {
 //	var fontName : String { get set }
@@ -311,10 +320,3 @@ containerView.addSubview(label)
 //	label.attributedText = md.attributedString()
 //}
 //
-let matchedCharacters = "mynew\\Strings"
-if let hasRange = matchedCharacters.rangeOfString("\\") {
-	let newRange  = Range(start: hasRange.startIndex, end: hasRange.endIndex.advancedBy(1))
-	let range  = hasRange.startIndex...hasRange.endIndex
-	
-	
-}

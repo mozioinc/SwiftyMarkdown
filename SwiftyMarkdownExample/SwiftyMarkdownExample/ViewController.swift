@@ -15,27 +15,31 @@ class ViewController: UIViewController {
 	
 	override func viewDidLoad() {
 		super.viewDidLoad()
-		// Do any additional setup after loading the view, typically from a nib.
+	
+		// This is to help debugging.
+		reloadText(nil)
+	}
+	
+	@IBAction func reloadText( _ sender : UIButton? ) {
+				
+		self.textView.dataDetectorTypes = UIDataDetectorTypes.all
 		
-		self.textView.dataDetectorTypes = UIDataDetectorTypes.All
-		if let url = NSBundle.mainBundle().URLForResource("example", withExtension: "md"), md = SwiftyMarkdown(url: url) {
+		if self.textView.text != "" {
+			self.textView.attributedText = SwiftyMarkdown(string: "Yo I'm a *single* line **string**. How do I look?").attributedString()
+			return
+		}
+
+		
+		if let url = Bundle.main.url(forResource: "example", withExtension: "md"), let md = SwiftyMarkdown(url: url) {
 			md.h2.fontName = "AvenirNextCondensed-Bold"
-			md.h2.color = UIColor.redColor()
+			md.h2.color = UIColor.red
 			md.code.fontName = "CourierNewPSMT"
-			
+
 			self.textView.attributedText = md.attributedString()
 
 		} else {
 			fatalError("Error loading file")
 		}
-		
 	}
-
-	override func didReceiveMemoryWarning() {
-		super.didReceiveMemoryWarning()
-		// Dispose of any resources that can be recreated.
-	}
-
-
 }
 
