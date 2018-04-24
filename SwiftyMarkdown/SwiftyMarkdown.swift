@@ -283,7 +283,7 @@ enum LineStyle : Int {
 			if appendingNewLines {
                 attributedString.append(NSAttributedString(string: "\n"))
             }
-			currentType = .Body
+			currentType = .body
 		}
 		
 		return attributedString
